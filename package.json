@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "axios": "^0.21.1",
+    "node-notifier": "^10.0.0",
+    "node-pushover": "^1.0.0",
+    "node-schedule": "^2.0.0",
+    "puppeteer": "^10.2.0"
+  }
+}
