@@ -95,12 +95,13 @@ async function start() {
           ) {
             if (Number(res.data.data.markets[i].liquidity) > 150) {
               //notify if over 150 usd
-              push.send(
-                "CAKE on Venus",
-                `CAKE Liquidity: $ ${Number(
+              var msg = {
+                message: `CAKE Liquidity: $ ${Number(
                   res.data.data.markets[i].liquidity
-                ).toFixed(2)}`
-              );
+                ).toFixed(2)}`,
+                title: "CAKE on Venus",
+              };
+              push.send(msg);
               // notifier.notify('time to get in Venus Protocol CAKE!');
             }
           }
@@ -120,7 +121,7 @@ var runBot = schedule.scheduleJob("* * * * *", async function () {
 });
 
 var runBorrowLimitChecker = schedule.scheduleJob(
-  "*/2 * * * *",
+  "*/15 * * * *",
   async function () {
     //runs every 15 min
 
