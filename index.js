@@ -25,8 +25,6 @@ const launchConfigRaspberry = {
 };
 
 const launchWindows = {
-  // metamaskVersion: "9.8.3_0", 
-  // metamaskPath:`${extension}`,
   headless: false,
   // ignoreDefaultArgs: ["--disable-extensions"],
   // executablePath:
