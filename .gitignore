@@ -1,5 +1,6 @@
 /node_modules
-./yarn.lock
-./.env
+/yarn.lock
+/.env
 .env
 yarn.lock
+test.js

@@ -2,85 +2,59 @@ const axios = require("axios");
 // const notifier = require('node-notifier'); //notifier is to send notifications to the pc that's running the code. uncomment this line and #90 to enable
 const schedule = require("node-schedule");
 const Pushover = require("pushover-notifications");
-const puppeteer = require("puppeteer");
 const dotenv = require("dotenv");
+const Web3 = require("web3");
 const blStatus = require("./borrow-limit-status");
 dotenv.config();
 
+var web3 = new Web3("https://bsc-dataseed1.binance.org:443");
 const URL = "https://api.venus.io/api/governance/venus";
+
+const tokenAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82"; //cake contract
+const walletAddress = "0x86ac3974e2bd0d60825230fa6f355ff11409df5c"; //venus cake contract address
 
 var push = new Pushover({
   token: process.env.pushTOKEN,
   user: process.env.pushUSER,
 });
 
-const launchConfigRaspberry = {
-  headless: true,
-  ignoreHTTPSErrors: true,
-  executablePath: "chromium-browser",
-  args: [
-    "--disable-web-security",
-    "--allow-http-screen-capture",
-    "--allow-running-insecure-content",
-    "--disable-features=site-per-process",
-    "--no-sandbox",
-  ],
-};
+// The minimum ABI to get ERC20 Token balance
 
-const launchWindows = {
-  headless: false,
-  // ignoreDefaultArgs: ["--disable-extensions"],
-  // executablePath:
-  //   "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
-  executablePath: "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe",
-  args: [
-    // "--disable-gpu",
-    // "--disable-dev-shm-usage",
-    // "--disable-setuid-sandbox",
-    // "--no-first-run",
-    // "--no-sandbox",
-    // "--no-zygote",
-    // "--single-process",
-    // "--no-sandbox",
-    // "--disable-setuid-sandbox",
-    // `--disable-extensions-except=${newEx}`,
-    // `--load-extension=${newEx}`,
-    "--enable-automation",
-  ],
-};
-const balanceX = "/html/body/div[1]/main/div[4]/div[3]/div/div/div[2]";
+const minABI = [
+  // balanceOf
+  {
+    constant: true,
+
+    inputs: [{ name: "_owner", type: "address" }],
+
+    name: "balanceOf",
+
+    outputs: [{ name: "balance", type: "uint256" }],
+
+    type: "function",
+  },
+];
+
 let cakePrev = 0;
 
 async function start() {
   try {
-    const browser = await puppeteer.launch(launchWindows);
-    const page = await browser.newPage();
-    page.setViewport({
-      width: 1280,
-      height: 800,
-      isMobile: false,
-    });
+    const contract = new web3.eth.Contract(minABI, tokenAddress);
+    const result = await contract.methods.balanceOf(walletAddress).call(); // 29803630997051883414242659
 
-    await page.goto(
-      "https://bscscan.com/token/0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82?a=0x86ac3974e2bd0d60825230fa6f355ff11409df5c",
-      {
-        // waitUntil: "networkidle0",
-      }
-    );
+    const format = web3.utils.fromWei(result); // 29803630.997051883414242659
 
-    await page.waitForXPath(balanceX);
-    const priceX = await page.$x(balanceX);
-    const balance = await page.evaluate((el) => el.textContent, priceX[0]);
-    const realBalance = balance.slice(0, -6); // removing word Cake
-    const finalBalance = realBalance.slice(8); //removing word Balance
-    console.log("balance ", Number(finalBalance));
-    if (Number(finalBalance) > 10 && Number(finalBalance) !== cakePrev) {
+    console.log(format);
+    if (format > 0 && format !== cakePrev) {
       //send notification if balance over 10 cake and notification not already sent
       cakePrev = Number(finalBalance);
-      push.send(
-        "CAKE on Venus",
-        `CAKE Liquidity: ${Number(finalBalance)} CAKE`
-      ); //sends notification to phone
+      var msg = {
+        message: `CAKE Liquidity: ${Number(
+          res.data.data.markets[i].liquidity
+        ).toFixed(2)} CAKE`,
+        title: "CAKE on Venus",
+      };
+      push.send(msg);
     }
   } catch (err) {
     console.log("error with bscscan page");
