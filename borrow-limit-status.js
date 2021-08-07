@@ -7,19 +7,37 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const yourAccount = process.env.BSCAddress; //insert your account
-const bnbBalance = process.env.BNBDeposit; // i've deposited bnb. so im using this to calculate my borrow limit. change this according to the token you withdrew
 const stableCoin = 0; // stablecoin deposited
 const bnbCollateralFactor = 0.8; //bnb collateral factor is 80%
 
 var web3 = new Web3("https://bsc-dataseed1.binance.org:443");
 
 const ABIjson = fs.readFileSync("./contract.json");
+const vBNBabi = fs.readFileSync("./vbnb.json");
 const ABI = JSON.parse(ABIjson);
+const vbnbABI = JSON.parse(vBNBabi);
 
 const URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd";
 
 const contract = "0x86ac3974e2bd0d60825230fa6f355ff11409df5c";
+const vbnbContract = "0xa07c5b74c9b40447a954e1466938b865b6bbea36";
+
+// The minimum ABI to get ERC20 Token balance
+const minABI = [
+  // balanceOf
+  {
+    constant: true,
+
+    inputs: [{ name: "_owner", type: "address" }],
+
+    name: "balanceOf",
+
+    outputs: [{ name: "balance", type: "uint256" }],
+
+    type: "function",
+  },
+];
 
 let notificationSent = false;
 
@@ -29,6 +47,26 @@ var push = new Pushover({
   token: process.env.pushTOKEN,
   user: process.env.pushUSER,
 });
+
+async function bnbBalanceFunction() {
+  //calculating vbnb rate
+  const vToken = new web3.eth.Contract(vbnbABI, vbnbContract);
+  const vTokenDecimals = 8; // all vTokens have 8 decimal places
+  const underlyingDecimals = 18;
+  const exchangeRateCurrent = await vToken.methods.exchangeRateCurrent().call();
+  const mantissa = 18 + parseInt(underlyingDecimals) - vTokenDecimals;
+  const onevTokenInUnderlying = exchangeRateCurrent / Math.pow(10, mantissa);
+
+  //retrieving user balance
+  const contract = new web3.eth.Contract(minABI, vbnbContract);
+  const balance = await contract.methods.balanceOf(yourAccount).call();
+  const multiplier = 10 ** 8;
+  const actualBalance = balance / multiplier;
+
+  //calculating actual value
+  const bnbBalance = actualBalance * onevTokenInUnderlying;
+  return bnbBalance;
+}
 
 async function blStatus() {
   await axios
@@ -40,6 +78,7 @@ async function blStatus() {
       }
 
       const bnbPrice = res.data.binancecoin.usd;
+      const bnbBalance = await bnbBalanceFunction();
       const depositValue = bnbPrice * bnbBalance + stableCoin;
       console.log("tot ", depositValue);
       const unicorn = new web3.eth.Contract(ABI, contract);

@@ -2,5 +2,3 @@ pushTOKEN=pushoverToken
 pushUSER=pushoverUserToken
 
 BSCAddress=insertaddress
-
-BNBDeposit=10
