@@ -45,19 +45,17 @@ async function start() {
     const format = web3.utils.fromWei(result); // 29803630.997051883414242659
 
     console.log(format);
-    if (format > 0 && format !== cakePrev) {
+    if (format > 10 && format !== cakePrev) {
       //send notification if balance over 10 cake and notification not already sent
-      cakePrev = Number(finalBalance);
+      cakePrev = format;
       var msg = {
-        message: `CAKE Liquidity: ${Number(
-          res.data.data.markets[i].liquidity
-        ).toFixed(2)} CAKE`,
+        message: `CAKE Liquidity: ${Number(format).toFixed(2)} CAKE`,
         title: "CAKE on Venus",
       };
       push.send(msg);
     }
   } catch (err) {
-    console.log("error with bscscan page");
+    console.log("error with bscscan page", err);
     // if there is an error loading bscscan we load the data from venus's api
     await axios
       .get(URL)
