@@ -1,5 +1,5 @@
 const axios = require("axios");
-// const notifier = require('node-notifier'); //notifier is to send notifications to the pc that's running the code. uncomment this line and #90 to enable
+// const notifier = require('node-notifier'); //notifier is to send notifications to the pc that's running the code. uncomment this line and #76 to enable
 const schedule = require("node-schedule");
 const Pushover = require("pushover-notifications");
 const dotenv = require("dotenv");
@@ -19,7 +19,6 @@ var push = new Pushover({
 });
 
 // The minimum ABI to get ERC20 Token balance
-
 const minABI = [
   // balanceOf
   {
@@ -55,7 +54,7 @@ async function start() {
       push.send(msg);
     }
   } catch (err) {
-    console.log("error with bscscan page", err);
+    console.log("error with bsc api", err);
     // if there is an error loading bscscan we load the data from venus's api
     await axios
       .get(URL)
@@ -87,8 +86,6 @@ async function start() {
 
 var runBot = schedule.scheduleJob("* * * * *", async function () {
   //runs every minute
-  // console.log('running bot')
-
   await start();
 });
 
@@ -96,7 +93,6 @@ var runBorrowLimitChecker = schedule.scheduleJob(
   "*/15 * * * *",
   async function () {
     //runs every 15 min
-
     await blStatus.blStatus();
   }
 );

@@ -7,7 +7,7 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const yourAccount = process.env.BSCAddress; //insert your account
-const bnbBalance = 61; // i've deposited bnb. so im using this to calculate my borrow limit. change this according to the token you withdrew
+const bnbBalance = process.env.BNBDeposit; // i've deposited bnb. so im using this to calculate my borrow limit. change this according to the token you withdrew
 const stableCoin = 0; // stablecoin deposited
 const bnbCollateralFactor = 0.8; //bnb collateral factor is 80%
 
