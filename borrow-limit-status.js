@@ -3,6 +3,7 @@ const axios = require("axios");
 const Pushover = require("pushover-notifications");
 const fs = require("fs");
 const Web3 = require("web3");
+const pancakeAPR = require("./pancakeAPR");
 const dotenv = require("dotenv");
 dotenv.config();
 
@@ -68,6 +69,23 @@ async function bnbBalanceFunction() {
   return bnbBalance;
 }
 
+async function cakePriceFunction() {
+  const cakePriceRaw = await axios.get(
+    "https://api.coingecko.com/api/v3/simple/price?ids=pancakeswap-token&vs_currencies=usd"
+  );
+  const cakePrice = cakePriceRaw.data["pancakeswap-token"].usd;
+  return cakePrice;
+}
+
+async function cakeBalanceFunction() {
+  const unicorn = new web3.eth.Contract(ABI, contract);
+  const balanceWithInterests = await unicorn.methods
+    .borrowBalanceStored(yourAccount)
+    .call();
+  const multiplier = 10 ** 18;
+  const actualValue = balanceWithInterests / multiplier;
+  return actualValue;
+}
 async function blStatus() {
   await axios
     .get(URL)
@@ -81,17 +99,9 @@ async function blStatus() {
       const bnbBalance = await bnbBalanceFunction();
       const depositValue = bnbPrice * bnbBalance + stableCoin;
       console.log("tot ", depositValue);
-      const unicorn = new web3.eth.Contract(ABI, contract);
-      const balanceWithInterests = await unicorn.methods
-        .borrowBalanceStored(yourAccount)
-        .call();
-      const multiplier = 10 ** 18;
-      const actualValue = balanceWithInterests / multiplier;
+      const actualValue = await cakeBalanceFunction();
 
-      const cakePriceRaw = await axios.get(
-        "https://api.coingecko.com/api/v3/simple/price?ids=pancakeswap-token&vs_currencies=usd"
-      );
-      const cakePrice = cakePriceRaw.data["pancakeswap-token"].usd;
+      const cakePrice = await cakePriceFunction();
       const cakeValue = actualValue * cakePrice; //CAKE value in dollars
       const cakeM = cakeValue * 100;
 
@@ -130,4 +140,78 @@ async function blStatus() {
     });
 }
 
+async function bnbSupplyAPY() {
+  const bnbMantissa = 1e18;
+  const blocksPerDay = 20 * 60 * 24;
+  const daysPerYear = 365;
+
+  const vToken = new web3.eth.Contract(vbnbABI, vbnbContract);
+  const supplyRatePerBlock = await vToken.methods.supplyRatePerBlock().call();
+  const supplyApy =
+    (Math.pow(
+      (supplyRatePerBlock / bnbMantissa) * blocksPerDay + 1,
+      daysPerYear
+    ) -
+      1) *
+    100;
+  return supplyApy;
+  console.log(`Supply APY for BNB ${supplyApy} %`);
+}
+
+async function cakeBorrowAPY() {
+  const bnbMantissa = 1e18;
+  const blocksPerDay = 20 * 60 * 24;
+  const daysPerYear = 365;
+
+  const vToken = new web3.eth.Contract(ABI, contract);
+  const borrowRatePerBlock = await vToken.methods.borrowRatePerBlock().call();
+  const borrowApy =
+    (Math.pow(
+      (borrowRatePerBlock / bnbMantissa) * blocksPerDay + 1,
+      daysPerYear
+    ) -
+      1) *
+    100;
+  return borrowApy;
+  console.log(`Borrow APY for CAKE ${borrowApy} %`);
+}
+
+async function netAPY() {
+  const cakeBalance = await cakeBalanceFunction();
+  const cakePrice = await cakePriceFunction();
+  const cakeValue = cakeBalance * cakePrice; //CAKE value in dollars
+  const cakeInterests = await cakeBorrowAPY();
+  console.log("cake interests -", cakeInterests);
+  const cakePaid = (cakeValue * cakeInterests) / 100;
+
+  const bnbPriceData = await axios.get(URL);
+  const bnbPrice = bnbPriceData.data.binancecoin.usd;
+  const bnbBalance = await bnbBalanceFunction();
+  const bnbValue = bnbPrice * bnbBalance;
+  const bnbInterests = await bnbSupplyAPY();
+  console.log("bnb Interests ", bnbInterests);
+
+  const bnbEarned = (bnbValue * bnbInterests) / 100;
+
+  //venus NET APY
+  const difference = bnbEarned - cakePaid;
+  const VenusAPY = (difference * 100) / bnbValue;
+
+  console.log("net apy on Venus", VenusAPY);
+
+  // the following is the APR from pancakeswap's manual CAKE Pool
+  const cakeSwapPoolAPR = await pancakeAPR.pancakeAPR();
+  console.log("the apr for cake pool is ", cakeSwapPoolAPR);
+  const cakeRewardsYear = (cakeBalance * cakeSwapPoolAPR) / 100;
+  const cakeRewardsYearUSD = cakeRewardsYear * cakePrice;
+
+  const actualDifference = difference + cakeRewardsYearUSD;
+  const actualAPY = (actualDifference * 100) / bnbValue;
+  console.log("final net APY including PancakeSwap", actualAPY);
+
+  //TODO: calculate the APY of the Auto CAKE Pool for a better estimate of Net APY
+}
+
 exports.blStatus = blStatus;
+exports.cakeBorrowAPY = cakeBorrowAPY;
+exports.bnbSupplyAPY = bnbSupplyAPY;
