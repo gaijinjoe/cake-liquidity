@@ -97,5 +97,14 @@ var runBorrowLimitChecker = schedule.scheduleJob(
   }
 );
 
+var runAPYBrief = schedule.scheduleJob(
+  "00 07,19 * * *",
+  // runs every day at 7pm and 7am
+  async function () {
+    await blStatus.netAPY();
+  }
+);
+
 runBot;
 runBorrowLimitChecker;
+runAPYBrief;

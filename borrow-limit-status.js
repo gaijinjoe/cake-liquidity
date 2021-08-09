@@ -86,58 +86,58 @@ async function cakeBalanceFunction() {
   const actualValue = balanceWithInterests / multiplier;
   return actualValue;
 }
+
+async function borrowLimitCalc() {
+  const bnbPriceData = await axios.get(URL);
+  const bnbPrice = bnbPriceData.data.binancecoin.usd;
+  const bnbBalance = await bnbBalanceFunction();
+  const depositValue = bnbPrice * bnbBalance + stableCoin;
+  console.log("tot ", depositValue);
+  const actualValue = await cakeBalanceFunction();
+
+  const cakePrice = await cakePriceFunction();
+  const cakeValue = actualValue * cakePrice; //CAKE value in dollars
+  const cakeM = cakeValue * 100;
+
+  const borrowAllowance = depositValue * bnbCollateralFactor; // borrow allowance
+
+  const borrowLimit = cakeM / borrowAllowance;
+  return borrowLimit;
+}
+
 async function blStatus() {
-  await axios
-    .get(URL)
-    .then(async (res) => {
-      if (timesChecked >= 3 && notificationSent === true) {
-        // if the notification was sent 3 rounds earlier we will reset the notificationSent value so to notify again the owner
-        notificationSent = false;
-      }
+  if (timesChecked >= 3 && notificationSent === true) {
+    // if the notification was sent 3 rounds earlier we will reset the notificationSent value so to notify again the owner
+    notificationSent = false;
+  }
 
-      const bnbPrice = res.data.binancecoin.usd;
-      const bnbBalance = await bnbBalanceFunction();
-      const depositValue = bnbPrice * bnbBalance + stableCoin;
-      console.log("tot ", depositValue);
-      const actualValue = await cakeBalanceFunction();
+  const borrowLimit = await borrowLimitCalc();
+  if (borrowLimit > 88 && notificationSent === false) {
+    //notify if borrowlimit is over 88%
+    console.log("sending urgent notification");
+    notificationSent = true;
+    timesChecked = 0;
+    // notification message
+    var msg = {
+      message: `The borrow-limit of Venus is at dangerous levels: ${borrowLimit.toFixed(
+        2
+      )}%`,
+      title: "⚠️BORROW-LIMIT DANGER⚠️",
+      sound: "persistent", //no stop
+      priority: 2, //priority 2 wont go away until you interact with it
+      retry: 30, //it sends the notification every 30 seconds
+      expire: 10800, //keeps the notification active for 3h
+    };
 
-      const cakePrice = await cakePriceFunction();
-      const cakeValue = actualValue * cakePrice; //CAKE value in dollars
-      const cakeM = cakeValue * 100;
-
-      const borrowAllowance = depositValue * bnbCollateralFactor; // borrow allowance
-
-      const borrowLimit = cakeM / borrowAllowance;
-      if (borrowLimit > 88 && notificationSent === false) {
-        //notify if borrowlimit is over 88%
-        console.log("sending urgent notification");
-        notificationSent = true;
-        timesChecked = 0;
-        // notification message
-        var msg = {
-          message: `The borrow-limit of Venus is at dangerous levels: ${borrowLimit.toFixed(
-            2
-          )}%`,
-          title: "⚠️BORROW-LIMIT DANGER⚠️",
-          sound: "persistent", //no stop
-          priority: 2, //priority 2 wont go away until you interact with it
-          retry: 30, //it sends the notification every 30 seconds
-          expire: 10800, //keeps the notification active for 3h
-        };
-
-        push.send(msg, function (err, result) {
-          if (err) {
-            console.log("notification error ", err);
-          } // send notification
-          console.log(result);
-        }); // send notification
-      }
-      console.log("borrowLimit  ", borrowLimit);
-      timesChecked += 1;
-    })
-    .catch((err) => {
-      console.log("axios error ", err);
-    });
+    push.send(msg, function (err, result) {
+      if (err) {
+        console.log("notification error ", err);
+      } // send notification
+      console.log(result);
+    }); // send notification
+  }
+  console.log("borrowLimit  ", borrowLimit);
+  timesChecked += 1;
 }
 
 async function bnbSupplyAPY() {
@@ -181,7 +181,7 @@ async function netAPY() {
   const cakePrice = await cakePriceFunction();
   const cakeValue = cakeBalance * cakePrice; //CAKE value in dollars
   const cakeInterests = await cakeBorrowAPY();
-  console.log("cake interests -", cakeInterests);
+  // console.log("cake interests -", cakeInterests);
   const cakePaid = (cakeValue * cakeInterests) / 100;
 
   const bnbPriceData = await axios.get(URL);
@@ -189,7 +189,7 @@ async function netAPY() {
   const bnbBalance = await bnbBalanceFunction();
   const bnbValue = bnbPrice * bnbBalance;
   const bnbInterests = await bnbSupplyAPY();
-  console.log("bnb Interests ", bnbInterests);
+  // console.log("bnb Interests ", bnbInterests);
 
   const bnbEarned = (bnbValue * bnbInterests) / 100;
 
@@ -197,39 +197,52 @@ async function netAPY() {
   const difference = bnbEarned - cakePaid;
   const VenusAPY = (difference * 100) / bnbValue;
 
-  console.log("net apy on Venus", VenusAPY);
+  // console.log("net apy on Venus", VenusAPY);
 
   // the following is the APR from pancakeswap's manual CAKE Pool
   const cakeSwapPoolAPR = await pancakeAPR.pancakeAPR();
-  console.log("the apr for cake pool is ", cakeSwapPoolAPR);
-  const cakeRewardsYear = (cakeBalance * cakeSwapPoolAPR) / 100;
-  const cakeRewardsYearUSD = cakeRewardsYear * cakePrice;
+  // console.log("the apr for cake pool is ", cakeSwapPoolAPR);
 
+  //calculate the APY of the Auto CAKE Pool for a better estimate of Net APY
+  const autoAPY = compoundInterest(1, cakeSwapPoolAPR / 100, 365 * 288, 1);
+  // console.log("apy for auto cake pool ", autoAPY * 100);
+  const cakeRewardsYear = cakeBalance * autoAPY;
+  const cakeRewardsYearUSD = cakeRewardsYear * cakePrice;
   const actualDifference = difference + cakeRewardsYearUSD;
   const actualAPY = (actualDifference * 100) / bnbValue;
   console.log("final net APY including PancakeSwap", actualAPY);
 
-  //TODO: calculate the APY of the Auto CAKE Pool for a better estimate of Net APY
+  const borrowLimit = await borrowLimitCalc();
+  var msg = {
+    message: `
+    Borrow Limit: ${borrowLimit.toFixed(2)}% 
+    NET APY: ${actualAPY.toFixed(2)}%
+    Daily Reward: ${((bnbValue * actualAPY) / 100 / 365).toFixed(2)} USD
+    `,
+    title: "🤑Venus Mining Update🤑",
+  };
+
+  push.send(msg, function (err, result) {
+    if (err) {
+      console.log("notification error ", err);
+    } // send notification
+    console.log(result);
+  }); // send notification
 }
 
 function compoundInterest(principal, annual_rate, n_times, t_years) {
-
-  // n_times = 365 * 288 = 105120
+  // compound based on 288 average compounding times daily. with a 2% fee for each yield harvest
 
   const intra_daily_rate = annual_rate / n_times;
   const fee = 2 / 100;
-  const intra_daily_rate_net = intra_daily_rate * (1-fee);
+  const intra_daily_rate_net = intra_daily_rate * (1 - fee);
 
   const compoundValue =
     principal * (Math.pow(1 + intra_daily_rate_net, n_times * t_years) - 1);
-
-  console.log(
-    principal * (Math.pow(1 + intra_daily_rate_net, n_times * t_years) - 1)
-  );
+  return compoundValue;
 }
 
 exports.blStatus = blStatus;
 exports.cakeBorrowAPY = cakeBorrowAPY;
 exports.bnbSupplyAPY = bnbSupplyAPY;
-
-// compoundInterest(1000, 67.88, 365, 1);
+exports.netAPY = netAPY;
