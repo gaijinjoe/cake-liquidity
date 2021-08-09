@@ -5,8 +5,8 @@ var web3 = new Web3("https://bsc-dataseed1.binance.org:443");
 const BNObject = Web3.utils.BN;
 const BN = (x) => new BNObject(x);
 
-const ABIjson = fs.readFileSync("./pancakeswapContract.json"); // pool contract
-const CakeABIJson = fs.readFileSync("./cakeContract.json"); //cake contract
+const ABIjson = fs.readFileSync("./contracts/pancakeswapContract.json"); // pool contract
+const CakeABIJson = fs.readFileSync("./contracts/cakeContract.json"); //cake contract
 const ABI = JSON.parse(ABIjson);
 const CakeABI = JSON.parse(CakeABIJson);
 

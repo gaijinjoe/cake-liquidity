@@ -13,8 +13,8 @@ const bnbCollateralFactor = 0.8; //bnb collateral factor is 80%
 
 var web3 = new Web3("https://bsc-dataseed1.binance.org:443");
 
-const ABIjson = fs.readFileSync("./contract.json");
-const vBNBabi = fs.readFileSync("./vbnb.json");
+const ABIjson = fs.readFileSync("./contracts/contract.json");
+const vBNBabi = fs.readFileSync("./contracts/vbnb.json");
 const ABI = JSON.parse(ABIjson);
 const vbnbABI = JSON.parse(vBNBabi);
 
@@ -212,6 +212,18 @@ async function netAPY() {
   //TODO: calculate the APY of the Auto CAKE Pool for a better estimate of Net APY
 }
 
+function compoundInterest(principal, annual_rate, n_times, t_years) {
+  const compoundValue =
+    principal * (Math.pow(1 + annual_rate / n_times, n_times * t_years) - 1);
+  const fee = 2 / 100;
+
+  console.log(
+    principal * (Math.pow(1 + annual_rate / n_times, n_times * t_years) - 1)
+  );
+}
+
 exports.blStatus = blStatus;
 exports.cakeBorrowAPY = cakeBorrowAPY;
 exports.bnbSupplyAPY = bnbSupplyAPY;
+
+// compoundInterest(1000, 67.88, 365, 1);
