@@ -213,12 +213,18 @@ async function netAPY() {
 }
 
 function compoundInterest(principal, annual_rate, n_times, t_years) {
-  const compoundValue =
-    principal * (Math.pow(1 + annual_rate / n_times, n_times * t_years) - 1);
+
+  // n_times = 365 * 288 = 105120
+
+  const intra_daily_rate = annual_rate / n_times;
   const fee = 2 / 100;
+  const intra_daily_rate_net = intra_daily_rate * (1-fee);
+
+  const compoundValue =
+    principal * (Math.pow(1 + intra_daily_rate_net, n_times * t_years) - 1);
 
   console.log(
-    principal * (Math.pow(1 + annual_rate / n_times, n_times * t_years) - 1)
+    principal * (Math.pow(1 + intra_daily_rate_net, n_times * t_years) - 1)
   );
 }
 
