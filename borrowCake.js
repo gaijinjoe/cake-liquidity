@@ -48,7 +48,8 @@ async function borrowCake(amountAvail, usdOrCake = "bnb") {
       // Borrow
       const borrowAmount =
         blStatus.borrowLimitFutureAllowance(valueAvailableCAKE); //retrieve amount we need to borrow
-      if (borrowAmount > 0 && borrowAmount !== null) {
+      console.log("borrowAmount ", borrowAmount);
+      if (borrowAmount > 0 || borrowAmount !== null) {
         //we run this only if the borrow Amount needed is superior to 0 and the borrow Amount didnt throw null
         const scaledUpBorrowAmount = (
           borrowAmount * Math.pow(10, underlyingDecimals)
