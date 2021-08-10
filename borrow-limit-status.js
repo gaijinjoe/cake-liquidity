@@ -24,6 +24,9 @@ const URL =
 const contract = "0x86ac3974e2bd0d60825230fa6f355ff11409df5c";
 const vbnbContract = "0xa07c5b74c9b40447a954e1466938b865b6bbea36";
 
+const tokenAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82"; //cake contract
+const walletAddress = "0x86ac3974e2bd0d60825230fa6f355ff11409df5c"; //venus cake contract address
+
 // The minimum ABI to get ERC20 Token balance
 const minABI = [
   // balanceOf
@@ -48,6 +51,14 @@ var push = new Pushover({
   token: process.env.pushTOKEN,
   user: process.env.pushUSER,
 });
+
+async function availableCakeToBorrow() {
+  const contract = new web3.eth.Contract(minABI, tokenAddress);
+  const result = await contract.methods.balanceOf(walletAddress).call(); // 29803630997051883414242659
+
+  const format = web3.utils.fromWei(result); // 29803630.997051883414242659
+  return format;
+}
 
 async function bnbBalanceFunction() {
   //calculating vbnb rate
@@ -87,6 +98,40 @@ async function cakeBalanceFunction() {
   return actualValue;
 }
 
+async function borrowLimitFutureAllowance(availableToBorrow) {
+  const bnbPriceData = await axios.get(URL);
+  const bnbPrice = bnbPriceData.data.binancecoin.usd;
+  const bnbBalance = await bnbBalanceFunction();
+  const depositValue = bnbPrice * bnbBalance + stableCoin;
+
+  const actualValue = await cakeBalanceFunction(); //cake borrowed up until now
+
+  const cakePrice = await cakePriceFunction();
+  const cakeValue = actualValue * cakePrice; //CAKE value in dollars
+  const cakeM = cakeValue * 100;
+
+  const borrowAllowance = depositValue * bnbCollateralFactor; // borrow allowance
+  const maxCakeAllowed = borrowAllowance / cakePrice; // max number of cake that will bring you into liquidation in this moment
+
+  const maxCakeBasedOnRisk =
+    (maxCakeAllowed * process.env.borrowLimitDesired) / 100; // the max cake the account can own before getting the desired level of risk
+  const numberOfCakeMissing = maxCakeBasedOnRisk - actualValue; //number of cake we still need to borrow
+  if (numberOfCakeMissing < 0) {
+    // if the number of cake we need is under 0, it means we dont need to borrow, therefore return null
+    return null;
+  }
+
+  if (availableToBorrow >= numberOfCakeMissing) {
+    // if available is over the amount we need we will only borrow what we need
+    console.log("numberOfCakeMissing ", numberOfCakeMissing);
+    return numberOfCakeMissing.toFixed(7);
+  } else if (availableToBorrow < numberOfCakeMissing) {
+    // if available is under the amount we need we will borrow all there is to borrow
+    console.log("availableToBorrow ", availableToBorrow);
+    return availableToBorrow.toFixed(7);
+  }
+}
+
 async function borrowLimitCalc() {
   const bnbPriceData = await axios.get(URL);
   const bnbPrice = bnbPriceData.data.binancecoin.usd;
@@ -112,7 +157,10 @@ async function blStatus() {
   }
 
   const borrowLimit = await borrowLimitCalc();
-  if (borrowLimit > 88 && notificationSent === false) {
+  if (
+    borrowLimit > process.env.borrowLimitDanger &&
+    notificationSent === false
+  ) {
     //notify if borrowlimit is over 88%
     console.log("sending urgent notification");
     notificationSent = true;
@@ -246,3 +294,7 @@ exports.blStatus = blStatus;
 exports.cakeBorrowAPY = cakeBorrowAPY;
 exports.bnbSupplyAPY = bnbSupplyAPY;
 exports.netAPY = netAPY;
+exports.borrowLimitCalc = borrowLimitCalc;
+exports.borrowLimitFutureAllowance = borrowLimitFutureAllowance;
+exports.availableCakeToBorrow = availableCakeToBorrow;
+exports.cakePriceFunction = cakePriceFunction;

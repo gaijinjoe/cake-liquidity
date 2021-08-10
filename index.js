@@ -3,48 +3,25 @@ const axios = require("axios");
 const schedule = require("node-schedule");
 const Pushover = require("pushover-notifications");
 const dotenv = require("dotenv");
-const Web3 = require("web3");
 const blStatus = require("./borrow-limit-status");
+const borrowCake = require("./borrowCake");
 dotenv.config();
 
-var web3 = new Web3("https://bsc-dataseed1.binance.org:443");
 const URL = "https://api.venus.io/api/governance/venus";
-
-const tokenAddress = "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82"; //cake contract
-const walletAddress = "0x86ac3974e2bd0d60825230fa6f355ff11409df5c"; //venus cake contract address
 
 var push = new Pushover({
   token: process.env.pushTOKEN,
   user: process.env.pushUSER,
 });
 
-// The minimum ABI to get ERC20 Token balance
-const minABI = [
-  // balanceOf
-  {
-    constant: true,
-
-    inputs: [{ name: "_owner", type: "address" }],
-
-    name: "balanceOf",
-
-    outputs: [{ name: "balance", type: "uint256" }],
-
-    type: "function",
-  },
-];
-
 let cakePrev = 0;
 
 async function start() {
   try {
-    const contract = new web3.eth.Contract(minABI, tokenAddress);
-    const result = await contract.methods.balanceOf(walletAddress).call(); // 29803630997051883414242659
-
-    const format = web3.utils.fromWei(result); // 29803630.997051883414242659
+    const format = await blStatus.availableCakeToBorrow();
 
     console.log(format);
-    if (format > 10 && format !== cakePrev) {
+    if (format > 10 && format !== cakePrev && !process.env.privateKey) {
       //send notification if balance over 10 cake and notification not already sent
       cakePrev = format;
       var msg = {
@@ -52,6 +29,9 @@ async function start() {
         title: "CAKE on Venus",
       };
       push.send(msg);
+    } else if (format > 10 && format !== cakePrev && process.env.privateKey) {
+      // if the user has added a private key, the bot will automatically borrow from pool
+      borrowCake.borrowCake(format, "bnb");
     }
   } catch (err) {
     console.log("error with bsc api", err);
@@ -64,7 +44,10 @@ async function start() {
             res.data.data.markets[i].address ===
             "0x86ac3974e2bd0d60825230fa6f355ff11409df5c"
           ) {
-            if (Number(res.data.data.markets[i].liquidity) > 150) {
+            if (
+              Number(res.data.data.markets[i].liquidity) > 150 &&
+              !process.env.privateKey
+            ) {
               //notify if over 150 usd
               var msg = {
                 message: `CAKE Liquidity: $ ${Number(
@@ -74,6 +57,15 @@ async function start() {
               };
               push.send(msg);
               // notifier.notify('time to get in Venus Protocol CAKE!');
+            } else if (
+              Number(res.data.data.markets[i].liquidity) > 150 &&
+              process.env.privateKey
+            ) {
+              // if the user has added a private key, the bot will automatically borrow from pool
+              borrowCake.borrowCake(
+                Number(res.data.data.markets[i].liquidity).toFixed(2),
+                "usd"
+              );
             }
           }
         }

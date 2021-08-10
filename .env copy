@@ -2,3 +2,8 @@ pushTOKEN=pushoverToken
 pushUSER=pushoverUserToken
 
 BSCAddress=insertaddress
+
+privateKey=yourprivatekeyhere
+
+borrowLimitDanger=88
+borrowLimitDesired=75
