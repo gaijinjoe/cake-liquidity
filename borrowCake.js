@@ -57,11 +57,16 @@ async function borrowCake(amountAvail, usdOrCake = "bnb") {
         ).toString();
         console.log("scaledUpBorrowAmount ", scaledUpBorrowAmount);
 
-        await vToken.methods.borrow(scaledUpBorrowAmount).send(fromMyWallet);
+        const transaction = await vToken.methods
+          .borrow(scaledUpBorrowAmount)
+          .send(fromMyWallet);
+        const txID = transaction.transactionHash;
         console.log("Borrow Transaction successful");
         var msg = {
           message: `The BOT has automatically borrowed CAKE from Venus`,
           title: "🤖 Automatically borrowed CAKE",
+          url: `https://bscscan.com/tx/${txID}`,
+          url_title: "Open on BSCScan",
         };
         push.send(msg);
       } else {
