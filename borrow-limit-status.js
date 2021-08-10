@@ -128,7 +128,7 @@ async function borrowLimitFutureAllowance(availableToBorrow) {
   } else if (availableToBorrow < numberOfCakeMissing) {
     // if available is under the amount we need we will borrow all there is to borrow
     console.log("availableToBorrow ", availableToBorrow);
-    return availableToBorrow.toFixed(7);
+    return Number(availableToBorrow).toFixed(7);
   }
 }
 
