@@ -46,8 +46,9 @@ async function borrowCake(amountAvail, usdOrCake = "bnb") {
       }
 
       // Borrow
-      const borrowAmount =
-        blStatus.borrowLimitFutureAllowance(valueAvailableCAKE); //retrieve amount we need to borrow
+      const borrowAmount = await blStatus.borrowLimitFutureAllowance(
+        valueAvailableCAKE
+      ); //retrieve amount we need to borrow
       console.log("borrowAmount ", borrowAmount);
       if (borrowAmount > 0 || borrowAmount !== null) {
         //we run this only if the borrow Amount needed is superior to 0 and the borrow Amount didnt throw null
@@ -71,9 +72,7 @@ async function borrowCake(amountAvail, usdOrCake = "bnb") {
   } catch (err) {
     console.log("error with borrow transaction ", err);
     const msg = {
-      message: `The BOT has failed borrowing CAKE from Venus. Available ${amountAvail.toFixed(
-        2
-      )} ${usdOrCake.toUpperCase()}`,
+      message: `The BOT has failed borrowing CAKE from Venus.`,
       title: "🤖 Failed borrowing CAKE",
     };
     push.send(msg);
