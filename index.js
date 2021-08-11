@@ -93,10 +93,48 @@ var runAPYBrief = schedule.scheduleJob(
   "00 07,19 * * *",
   // runs every day at 7pm and 7am
   async function () {
-    await blStatus.netAPY();
+    const netAPY = await blStatus.netAPY();
+    var msg = {
+      message: `
+      Borrow Limit: ${netAPY.borrowLimit}%
+      NET APY: ${netAPY.netAPY}%
+      Daily Reward: ${netAPY.dailyRewards} USD
+      `,
+      title: "🤑Venus Mining Update🤑",
+    };
+
+    push.send(msg, function (err, result) {
+      if (err) {
+        console.log("notification error ", err);
+      } // send notification
+      console.log(result);
+    }); // send notification
   }
 );
+
+var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
+  //runs every 15 min
+  const netAPY = await blStatus.netAPY();
+  if (netAPY.netAPY <= 3) {
+    // if the netAPY is 3% it will send an emergency notification
+    var msg = {
+      message: `Wake up and consider to return what you borrowed`,
+      title: `👮NET APY Danger ${netAPY.netAPY}%👮`,
+      sound: "persistent", //no stop
+      priority: 2, //priority 2 wont go away until you interact with it
+      retry: 30, //it sends the notification every 30 seconds
+      expire: 10800, //keeps the notification active for 3h
+    };
+    push.send(msg, function (err, result) {
+      if (err) {
+        console.log("notification error ", err);
+      } // send notification
+      console.log(result);
+    }); // send notification
+  }
+});
 
 runBot;
 runBorrowLimitChecker;
 runAPYBrief;
+runAPYDangerCheck;
