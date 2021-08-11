@@ -116,8 +116,8 @@ var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
   //runs every 15 min
   const netAPY = await blStatus.netAPY();
   console.log("net APY ", netAPY.netAPY);
-  if (netAPY.netAPY <= 3) {
-    // if the netAPY is 3% it will send an emergency notification
+  if (netAPY.netAPY <= 3 && blStatus.cakeBalanceFunction() > 0.1) {
+    // if the netAPY is 3% it will send an emergency notification and we didnt return all balance
     var msg = {
       message: `Wake up and consider to return what you borrowed`,
       title: `👮NET APY Danger ${netAPY.netAPY}%👮`,
