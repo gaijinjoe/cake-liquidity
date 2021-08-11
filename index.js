@@ -132,9 +132,22 @@ var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
       console.log(result);
     }); // send notification
   }
+  if (netAPY.netAPY >= 22) {
+    // if the netAPY is 3% it will send an emergency notification
+    var msg = {
+      message: `Consider entering into the mining of CAKE`,
+      title: `👌Good NET APY ${netAPY.netAPY}%👌`,
+    };
+    push.send(msg, function (err, result) {
+      if (err) {
+        console.log("notification error ", err);
+      } // send notification
+      console.log(result);
+    }); // send notification
+  }
 });
 
-runBot;
-runBorrowLimitChecker;
-runAPYBrief;
-runAPYDangerCheck;
+// runBot;
+// runBorrowLimitChecker;
+// runAPYBrief;
+// runAPYDangerCheck;
