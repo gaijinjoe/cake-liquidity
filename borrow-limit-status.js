@@ -225,48 +225,52 @@ async function cakeBorrowAPY() {
 }
 
 async function netAPY() {
-  const cakeBalance = await cakeBalanceFunction();
-  const cakePrice = await cakePriceFunction();
-  const cakeValue = cakeBalance * cakePrice; //CAKE value in dollars
-  const cakeInterests = await cakeBorrowAPY();
-  console.log("cake interests -", cakeInterests);
-  const cakePaid = (cakeValue * cakeInterests) / 100;
+  try {
+    const cakeBalance = await cakeBalanceFunction();
+    const cakePrice = await cakePriceFunction();
+    const cakeValue = cakeBalance * cakePrice; //CAKE value in dollars
+    const cakeInterests = await cakeBorrowAPY();
+    console.log("cake interests -", cakeInterests);
+    const cakePaid = (cakeValue * cakeInterests) / 100;
 
-  const bnbPriceData = await axios.get(URL);
-  const bnbPrice = bnbPriceData.data.binancecoin.usd;
-  const bnbBalance = await bnbBalanceFunction();
-  const bnbValue = bnbPrice * bnbBalance;
-  const bnbInterests = await bnbSupplyAPY();
-  console.log("bnb Interests ", bnbInterests);
+    const bnbPriceData = await axios.get(URL);
+    const bnbPrice = bnbPriceData.data.binancecoin.usd;
+    const bnbBalance = await bnbBalanceFunction();
+    const bnbValue = bnbPrice * bnbBalance;
+    const bnbInterests = await bnbSupplyAPY();
+    console.log("bnb Interests ", bnbInterests);
 
-  const bnbEarned = (bnbValue * bnbInterests) / 100;
+    const bnbEarned = (bnbValue * bnbInterests) / 100;
 
-  //venus NET APY
-  const difference = bnbEarned - cakePaid;
-  const VenusAPY = (difference * 100) / bnbValue;
+    //venus NET APY
+    const difference = bnbEarned - cakePaid;
+    const VenusAPY = (difference * 100) / bnbValue;
 
-  console.log("net apy on Venus", VenusAPY);
+    console.log("net apy on Venus", VenusAPY);
 
-  // the following is the APR from pancakeswap's manual CAKE Pool
-  const cakeSwapPoolAPR = await pancakeAPR.pancakeAPR();
-  console.log("the apr for cake pool is ", cakeSwapPoolAPR);
+    // the following is the APR from pancakeswap's manual CAKE Pool
+    const cakeSwapPoolAPR = await pancakeAPR.pancakeAPR();
+    console.log("the apr for cake pool is ", cakeSwapPoolAPR);
 
-  //calculate the APY of the Auto CAKE Pool for a better estimate of Net APY
-  const autoAPY = compoundInterest(1, cakeSwapPoolAPR / 100, 365 * 288, 1);
-  console.log("the apy for auto cake pool is ", autoAPY);
-  // console.log("apy for auto cake pool ", autoAPY * 100);
-  const cakeRewardsYear = cakeBalance * autoAPY;
-  const cakeRewardsYearUSD = cakeRewardsYear * cakePrice;
-  const actualDifference = difference + cakeRewardsYearUSD;
-  const actualAPY = (actualDifference * 100) / bnbValue;
-  console.log("final net APY including PancakeSwap", actualAPY);
+    //calculate the APY of the Auto CAKE Pool for a better estimate of Net APY
+    const autoAPY = compoundInterest(1, cakeSwapPoolAPR / 100, 365 * 288, 1);
+    console.log("the apy for auto cake pool is ", autoAPY);
+    // console.log("apy for auto cake pool ", autoAPY * 100);
+    const cakeRewardsYear = cakeBalance * autoAPY;
+    const cakeRewardsYearUSD = cakeRewardsYear * cakePrice;
+    const actualDifference = difference + cakeRewardsYearUSD;
+    const actualAPY = (actualDifference * 100) / bnbValue;
+    console.log("final net APY including PancakeSwap", actualAPY);
 
-  const borrowLimit = await borrowLimitCalc();
-  return {
-    borrowLimit: borrowLimit.toFixed(2),
-    dailyRewards: ((bnbValue * actualAPY) / 100 / 365).toFixed(2),
-    netAPY: actualAPY.toFixed(2),
-  };
+    const borrowLimit = await borrowLimitCalc();
+    return {
+      borrowLimit: borrowLimit.toFixed(2),
+      dailyRewards: ((bnbValue * actualAPY) / 100 / 365).toFixed(2),
+      netAPY: actualAPY.toFixed(2),
+    };
+  } catch (err) {
+    console.log("error with net apy ", err);
+  }
 }
 
 function compoundInterest(principal, annual_rate, n_times, t_years) {

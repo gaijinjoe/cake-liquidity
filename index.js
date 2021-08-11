@@ -115,6 +115,7 @@ var runAPYBrief = schedule.scheduleJob(
 var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
   //runs every 15 min
   const netAPY = await blStatus.netAPY();
+  console.log("net APY ", netAPY.netAPY);
   if (netAPY.netAPY <= 3) {
     // if the netAPY is 3% it will send an emergency notification
     var msg = {
