@@ -293,3 +293,4 @@ exports.borrowLimitCalc = borrowLimitCalc;
 exports.borrowLimitFutureAllowance = borrowLimitFutureAllowance;
 exports.availableCakeToBorrow = availableCakeToBorrow;
 exports.cakePriceFunction = cakePriceFunction;
+exports.cakeBalanceFunction = cakeBalanceFunction;
