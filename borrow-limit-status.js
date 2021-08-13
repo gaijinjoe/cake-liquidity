@@ -98,7 +98,10 @@ async function cakeBalanceFunction() {
   return actualValue;
 }
 
-async function borrowLimitFutureAllowance(availableToBorrow) {
+async function borrowLimitFutureAllowance(
+  availableToBorrow,
+  returnMissing = false
+) {
   const bnbPriceData = await axios.get(URL);
   const bnbPrice = bnbPriceData.data.binancecoin.usd;
   const bnbBalance = await bnbBalanceFunction();
@@ -119,6 +122,10 @@ async function borrowLimitFutureAllowance(availableToBorrow) {
   if (numberOfCakeMissing < 0) {
     // if the number of cake we need is under 0, it means we dont need to borrow, therefore return null
     return null;
+  }
+  if (returnMissing) {
+    console.log("numberOfCakeMissing ", numberOfCakeMissing);
+    return numberOfCakeMissing;
   }
 
   if (availableToBorrow >= numberOfCakeMissing) {
@@ -224,9 +231,11 @@ async function cakeBorrowAPY() {
   console.log(`Borrow APY for CAKE ${borrowApy} %`);
 }
 
-async function netAPY() {
+async function netAPY(isExpected = false) {
   try {
-    const cakeBalance = await cakeBalanceFunction();
+    const cakeBalance = isExpected
+      ? await borrowLimitFutureAllowance(await availableCakeToBorrow(), true)
+      : await cakeBalanceFunction();
     const cakePrice = await cakePriceFunction();
     const cakeValue = cakeBalance * cakePrice; //CAKE value in dollars
     const cakeInterests = await cakeBorrowAPY();

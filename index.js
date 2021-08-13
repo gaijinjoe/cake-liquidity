@@ -114,7 +114,11 @@ var runAPYBrief = schedule.scheduleJob(
 
 var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
   //runs every 15 min
-  const netAPY = await blStatus.netAPY();
+  let netAPY = await blStatus.netAPY();
+  if (blStatus.cakeBalanceFunction() < 0.1) {
+    // if there is no balance we will receive an expected APY Value in case we achieve our desired Borrow Limit amount and give a future expectation of APY rather than current
+    netAPY = await blStatus.netAPY(true);
+  }
   console.log("net APY ", netAPY?.netAPY);
   if (netAPY?.netAPY <= 3 && blStatus.cakeBalanceFunction() > 0.1) {
     // if the netAPY is 3% it will send an emergency notification and we didnt return all balance
