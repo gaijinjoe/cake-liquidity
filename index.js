@@ -96,9 +96,9 @@ var runAPYBrief = schedule.scheduleJob(
     const netAPY = await blStatus.netAPY();
     var msg = {
       message: `
-      Borrow Limit: ${netAPY.borrowLimit}%
-      NET APY: ${netAPY.netAPY}%
-      Daily Reward: ${netAPY.dailyRewards} USD
+      Borrow Limit: ${netAPY?.borrowLimit}%
+      NET APY: ${netAPY?.netAPY}%
+      Daily Reward: ${netAPY?.dailyRewards} USD
       `,
       title: "🤑Venus Mining Update🤑",
     };
@@ -115,12 +115,12 @@ var runAPYBrief = schedule.scheduleJob(
 var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
   //runs every 15 min
   const netAPY = await blStatus.netAPY();
-  console.log("net APY ", netAPY.netAPY);
-  if (netAPY.netAPY <= 3 && blStatus.cakeBalanceFunction() > 0.1) {
+  console.log("net APY ", netAPY?.netAPY);
+  if (netAPY?.netAPY <= 3 && blStatus.cakeBalanceFunction() > 0.1) {
     // if the netAPY is 3% it will send an emergency notification and we didnt return all balance
     var msg = {
       message: `Wake up and consider to return what you borrowed`,
-      title: `👮NET APY Danger ${netAPY.netAPY}%👮`,
+      title: `👮NET APY Danger ${netAPY?.netAPY}%👮`,
       sound: "persistent", //no stop
       priority: 2, //priority 2 wont go away until you interact with it
       retry: 30, //it sends the notification every 30 seconds
@@ -133,11 +133,11 @@ var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
       console.log(result);
     }); // send notification
   }
-  if (netAPY.netAPY >= 22) {
+  if (netAPY?.netAPY >= 22) {
     // if the netAPY is 3% it will send an emergency notification
     var msg = {
       message: `Consider entering into the mining of CAKE`,
-      title: `👌Good NET APY ${netAPY.netAPY}%👌`,
+      title: `👌Good NET APY ${netAPY?.netAPY}%👌`,
     };
     push.send(msg, function (err, result) {
       if (err) {
