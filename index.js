@@ -138,7 +138,7 @@ var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
         console.log(result);
       }); // send notification
     }
-    if (netAPY?.netAPY >= 22) {
+    if (netAPY?.netAPY >= 22 && blStatus.cakeBalanceFunction() < 0.1) {
       // if the netAPY is 3% it will send an emergency notification
       var msg = {
         message: `Consider entering into the mining of CAKE`,
