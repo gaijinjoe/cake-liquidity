@@ -113,42 +113,46 @@ var runAPYBrief = schedule.scheduleJob(
 );
 
 var runAPYDangerCheck = schedule.scheduleJob("*/30 * * * *", async function () {
-  //runs every 15 min
-  let netAPY = await blStatus.netAPY();
-  if (blStatus.cakeBalanceFunction() < 0.1) {
-    // if there is no balance we will receive an expected APY Value in case we achieve our desired Borrow Limit amount and give a future expectation of APY rather than current
-    netAPY = await blStatus.netAPY(true);
-  }
-  console.log("net APY ", netAPY?.netAPY);
-  if (netAPY?.netAPY <= 3 && blStatus.cakeBalanceFunction() > 0.1) {
-    // if the netAPY is 3% it will send an emergency notification and we didnt return all balance
-    var msg = {
-      message: `Wake up and consider to return what you borrowed`,
-      title: `👮NET APY Danger ${netAPY?.netAPY}%👮`,
-      sound: "persistent", //no stop
-      priority: 2, //priority 2 wont go away until you interact with it
-      retry: 30, //it sends the notification every 30 seconds
-      expire: 10800, //keeps the notification active for 3h
-    };
-    push.send(msg, function (err, result) {
-      if (err) {
-        console.log("notification error ", err);
-      } // send notification
-      console.log(result);
-    }); // send notification
-  }
-  if (netAPY?.netAPY >= 22) {
-    // if the netAPY is 3% it will send an emergency notification
-    var msg = {
-      message: `Consider entering into the mining of CAKE`,
-      title: `👌Good NET APY ${netAPY?.netAPY}%👌`,
-    };
-    push.send(msg, function (err, result) {
-      if (err) {
-        console.log("notification error ", err);
-      } // send notification
-      console.log(result);
-    }); // send notification
+  try {
+    //runs every 15 min
+    let netAPY = await blStatus.netAPY();
+    if (blStatus.cakeBalanceFunction() < 0.1) {
+      // if there is no balance we will receive an expected APY Value in case we achieve our desired Borrow Limit amount and give a future expectation of APY rather than current
+      netAPY = await blStatus.netAPY(true);
+    }
+    console.log("net APY ", netAPY?.netAPY);
+    if (netAPY?.netAPY <= 3 && blStatus.cakeBalanceFunction() > 0.1) {
+      // if the netAPY is 3% it will send an emergency notification and we didnt return all balance
+      var msg = {
+        message: `Wake up and consider to return what you borrowed`,
+        title: `👮NET APY Danger ${netAPY?.netAPY}%👮`,
+        sound: "persistent", //no stop
+        priority: 2, //priority 2 wont go away until you interact with it
+        retry: 30, //it sends the notification every 30 seconds
+        expire: 10800, //keeps the notification active for 3h
+      };
+      push.send(msg, function (err, result) {
+        if (err) {
+          console.log("notification error ", err);
+        } // send notification
+        console.log(result);
+      }); // send notification
+    }
+    if (netAPY?.netAPY >= 22) {
+      // if the netAPY is 3% it will send an emergency notification
+      var msg = {
+        message: `Consider entering into the mining of CAKE`,
+        title: `👌Good NET APY ${netAPY?.netAPY}%👌`,
+      };
+      push.send(msg, function (err, result) {
+        if (err) {
+          console.log("notification error ", err);
+        } // send notification
+        console.log(result);
+      }); // send notification
+    }
+  } catch (err) {
+    console.log("error expected APY ", err);
   }
 });
 
