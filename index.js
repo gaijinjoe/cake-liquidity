@@ -84,8 +84,12 @@ var runBot = schedule.scheduleJob("* * * * *", async function () {
 var runBorrowLimitChecker = schedule.scheduleJob(
   "*/15 * * * *",
   async function () {
-    //runs every 15 min
-    await blStatus.blStatus();
+    try {
+      //runs every 15 min
+      await blStatus.blStatus();
+    } catch (err) {
+      console.log("error borrow limit checker ", err);
+    }
   }
 );
 
@@ -93,22 +97,26 @@ var runAPYBrief = schedule.scheduleJob(
   "00 07,19 * * *",
   // runs every day at 7pm and 7am
   async function () {
-    const netAPY = await blStatus.netAPY();
-    var msg = {
-      message: `
+    try {
+      const netAPY = await blStatus.netAPY();
+      var msg = {
+        message: `
       Borrow Limit: ${netAPY?.borrowLimit}%
       NET APY: ${netAPY?.netAPY}%
       Daily Reward: ${netAPY?.dailyRewards} USD
       `,
-      title: "🤑Venus Mining Update🤑",
-    };
+        title: "🤑Venus Mining Update🤑",
+      };
 
-    push.send(msg, function (err, result) {
-      if (err) {
-        console.log("notification error ", err);
-      } // send notification
-      console.log(result);
-    }); // send notification
+      push.send(msg, function (err, result) {
+        if (err) {
+          console.log("notification error ", err);
+        } // send notification
+        console.log(result);
+      }); // send notification
+    } catch (err) {
+      console.log("error run apybrief");
+    }
   }
 );
 

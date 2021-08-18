@@ -53,182 +53,220 @@ var push = new Pushover({
 });
 
 async function availableCakeToBorrow() {
-  const contract = new web3.eth.Contract(minABI, tokenAddress);
-  const result = await contract.methods.balanceOf(walletAddress).call(); // 29803630997051883414242659
+  try {
+    const contract = new web3.eth.Contract(minABI, tokenAddress);
+    const result = await contract.methods.balanceOf(walletAddress).call(); // 29803630997051883414242659
 
-  const format = web3.utils.fromWei(result); // 29803630.997051883414242659
-  return format;
+    const format = web3.utils.fromWei(result); // 29803630.997051883414242659
+    return format;
+  } catch (err) {
+    console.log("error with availableCakeToBorrow ", err);
+  }
 }
 
 async function bnbBalanceFunction() {
-  //calculating vbnb rate
-  const vToken = new web3.eth.Contract(vbnbABI, vbnbContract);
-  const vTokenDecimals = 8; // all vTokens have 8 decimal places
-  const underlyingDecimals = 18;
-  const exchangeRateCurrent = await vToken.methods.exchangeRateCurrent().call();
-  const mantissa = 18 + parseInt(underlyingDecimals) - vTokenDecimals;
-  const onevTokenInUnderlying = exchangeRateCurrent / Math.pow(10, mantissa);
+  try {
+    //calculating vbnb rate
+    const vToken = new web3.eth.Contract(vbnbABI, vbnbContract);
+    const vTokenDecimals = 8; // all vTokens have 8 decimal places
+    const underlyingDecimals = 18;
+    const exchangeRateCurrent = await vToken.methods
+      .exchangeRateCurrent()
+      .call();
+    const mantissa = 18 + parseInt(underlyingDecimals) - vTokenDecimals;
+    const onevTokenInUnderlying = exchangeRateCurrent / Math.pow(10, mantissa);
 
-  //retrieving user balance
-  const contract = new web3.eth.Contract(minABI, vbnbContract);
-  const balance = await contract.methods.balanceOf(yourAccount).call();
-  const multiplier = 10 ** 8;
-  const actualBalance = balance / multiplier;
+    //retrieving user balance
+    const contract = new web3.eth.Contract(minABI, vbnbContract);
+    const balance = await contract.methods.balanceOf(yourAccount).call();
+    const multiplier = 10 ** 8;
+    const actualBalance = balance / multiplier;
 
-  //calculating actual value
-  const bnbBalance = actualBalance * onevTokenInUnderlying;
-  return bnbBalance;
+    //calculating actual value
+    const bnbBalance = actualBalance * onevTokenInUnderlying;
+    return bnbBalance;
+  } catch (err) {
+    console.log("error with bnb balance function ", err);
+  }
 }
 
 async function cakePriceFunction() {
-  const cakePriceRaw = await axios.get(
-    "https://api.coingecko.com/api/v3/simple/price?ids=pancakeswap-token&vs_currencies=usd"
-  );
-  const cakePrice = cakePriceRaw.data["pancakeswap-token"].usd;
-  return cakePrice;
+  try {
+    const cakePriceRaw = await axios.get(
+      "https://api.coingecko.com/api/v3/simple/price?ids=pancakeswap-token&vs_currencies=usd"
+    );
+    const cakePrice = cakePriceRaw.data["pancakeswap-token"].usd;
+    return cakePrice;
+  } catch (err) {
+    console.log("error with cake price function ", err);
+  }
 }
 
 async function cakeBalanceFunction() {
-  const unicorn = new web3.eth.Contract(ABI, contract);
-  const balanceWithInterests = await unicorn.methods
-    .borrowBalanceStored(yourAccount)
-    .call();
-  const multiplier = 10 ** 18;
-  const actualValue = balanceWithInterests / multiplier;
-  return actualValue;
+  try {
+    const unicorn = new web3.eth.Contract(ABI, contract);
+    const balanceWithInterests = await unicorn.methods
+      .borrowBalanceStored(yourAccount)
+      .call();
+    const multiplier = 10 ** 18;
+    const actualValue = balanceWithInterests / multiplier;
+    return actualValue;
+  } catch (err) {
+    console.log("error with cake balance function ", err);
+  }
 }
 
 async function borrowLimitFutureAllowance(
   availableToBorrow,
   returnMissing = false
 ) {
-  const bnbPriceData = await axios.get(URL);
-  const bnbPrice = bnbPriceData.data.binancecoin.usd;
-  const bnbBalance = await bnbBalanceFunction();
-  const depositValue = bnbPrice * bnbBalance + stableCoin;
+  try {
+    const bnbPriceData = await axios.get(URL);
+    const bnbPrice = bnbPriceData.data.binancecoin.usd;
+    const bnbBalance = await bnbBalanceFunction();
+    const depositValue = bnbPrice * bnbBalance + stableCoin;
 
-  const actualValue = await cakeBalanceFunction(); //cake borrowed up until now
+    const actualValue = await cakeBalanceFunction(); //cake borrowed up until now
 
-  const cakePrice = await cakePriceFunction();
-  const cakeValue = actualValue * cakePrice; //CAKE value in dollars
-  const cakeM = cakeValue * 100;
+    const cakePrice = await cakePriceFunction();
+    const cakeValue = actualValue * cakePrice; //CAKE value in dollars
+    const cakeM = cakeValue * 100;
 
-  const borrowAllowance = depositValue * bnbCollateralFactor; // borrow allowance
-  const maxCakeAllowed = borrowAllowance / cakePrice; // max number of cake that will bring you into liquidation in this moment
+    const borrowAllowance = depositValue * bnbCollateralFactor; // borrow allowance
+    const maxCakeAllowed = borrowAllowance / cakePrice; // max number of cake that will bring you into liquidation in this moment
 
-  const maxCakeBasedOnRisk =
-    (maxCakeAllowed * process.env.borrowLimitDesired) / 100; // the max cake the account can own before getting the desired level of risk
-  const numberOfCakeMissing = maxCakeBasedOnRisk - actualValue; //number of cake we still need to borrow
-  if (numberOfCakeMissing < 0) {
-    // if the number of cake we need is under 0, it means we dont need to borrow, therefore return null
-    return null;
-  }
-  if (returnMissing) {
-    console.log("numberOfCakeMissing ", numberOfCakeMissing);
-    return numberOfCakeMissing;
-  }
+    const maxCakeBasedOnRisk =
+      (maxCakeAllowed * process.env.borrowLimitDesired) / 100; // the max cake the account can own before getting the desired level of risk
+    const numberOfCakeMissing = maxCakeBasedOnRisk - actualValue; //number of cake we still need to borrow
+    if (numberOfCakeMissing < 0) {
+      // if the number of cake we need is under 0, it means we dont need to borrow, therefore return null
+      return null;
+    }
+    if (returnMissing) {
+      console.log("numberOfCakeMissing ", numberOfCakeMissing);
+      return numberOfCakeMissing;
+    }
 
-  if (availableToBorrow >= numberOfCakeMissing) {
-    // if available is over the amount we need we will only borrow what we need
-    console.log("numberOfCakeMissing ", numberOfCakeMissing);
-    return numberOfCakeMissing.toFixed(7);
-  } else if (availableToBorrow < numberOfCakeMissing) {
-    // if available is under the amount we need we will borrow all there is to borrow
-    console.log("availableToBorrow ", availableToBorrow);
-    return Number(availableToBorrow).toFixed(7);
+    if (availableToBorrow >= numberOfCakeMissing) {
+      // if available is over the amount we need we will only borrow what we need
+      console.log("numberOfCakeMissing ", numberOfCakeMissing);
+      return numberOfCakeMissing.toFixed(7);
+    } else if (availableToBorrow < numberOfCakeMissing) {
+      // if available is under the amount we need we will borrow all there is to borrow
+      console.log("availableToBorrow ", availableToBorrow);
+      return Number(availableToBorrow).toFixed(7);
+    }
+  } catch (err) {
+    console.log("error with borrow limit allowance ", err);
   }
 }
 
 async function borrowLimitCalc() {
-  const bnbPriceData = await axios.get(URL);
-  const bnbPrice = bnbPriceData.data.binancecoin.usd;
-  const bnbBalance = await bnbBalanceFunction();
-  const depositValue = bnbPrice * bnbBalance + stableCoin;
-  console.log("tot ", depositValue);
-  const actualValue = await cakeBalanceFunction();
+  try {
+    const bnbPriceData = await axios.get(URL);
+    const bnbPrice = bnbPriceData.data.binancecoin.usd;
+    const bnbBalance = await bnbBalanceFunction();
+    const depositValue = bnbPrice * bnbBalance + stableCoin;
+    console.log("tot ", depositValue);
+    const actualValue = await cakeBalanceFunction();
 
-  const cakePrice = await cakePriceFunction();
-  const cakeValue = actualValue * cakePrice; //CAKE value in dollars
-  const cakeM = cakeValue * 100;
+    const cakePrice = await cakePriceFunction();
+    const cakeValue = actualValue * cakePrice; //CAKE value in dollars
+    const cakeM = cakeValue * 100;
 
-  const borrowAllowance = depositValue * bnbCollateralFactor; // borrow allowance
+    const borrowAllowance = depositValue * bnbCollateralFactor; // borrow allowance
 
-  const borrowLimit = cakeM / borrowAllowance;
-  return borrowLimit;
+    const borrowLimit = cakeM / borrowAllowance;
+    return borrowLimit;
+  } catch (err) {
+    console.log("error borrow limit calc ", err);
+  }
 }
 
 async function blStatus() {
-  if (timesChecked >= 3 && notificationSent === true) {
-    // if the notification was sent 3 rounds earlier we will reset the notificationSent value so to notify again the owner
-    notificationSent = false;
-  }
+  try {
+    if (timesChecked >= 3 && notificationSent === true) {
+      // if the notification was sent 3 rounds earlier we will reset the notificationSent value so to notify again the owner
+      notificationSent = false;
+    }
 
-  const borrowLimit = await borrowLimitCalc();
-  if (
-    borrowLimit > process.env.borrowLimitDanger &&
-    notificationSent === false
-  ) {
-    //notify if borrowlimit is over 88%
-    console.log("sending urgent notification");
-    notificationSent = true;
-    timesChecked = 0;
-    // notification message
-    var msg = {
-      message: `The borrow-limit of Venus is at dangerous levels: ${borrowLimit.toFixed(
-        2
-      )}%`,
-      title: "⚠️BORROW-LIMIT DANGER⚠️",
-      sound: "persistent", //no stop
-      priority: 2, //priority 2 wont go away until you interact with it
-      retry: 30, //it sends the notification every 30 seconds
-      expire: 10800, //keeps the notification active for 3h
-    };
+    const borrowLimit = await borrowLimitCalc();
+    if (
+      borrowLimit > process.env.borrowLimitDanger &&
+      notificationSent === false
+    ) {
+      //notify if borrowlimit is over 88%
+      console.log("sending urgent notification");
+      notificationSent = true;
+      timesChecked = 0;
+      // notification message
+      var msg = {
+        message: `The borrow-limit of Venus is at dangerous levels: ${borrowLimit.toFixed(
+          2
+        )}%`,
+        title: "⚠️BORROW-LIMIT DANGER⚠️",
+        sound: "persistent", //no stop
+        priority: 2, //priority 2 wont go away until you interact with it
+        retry: 30, //it sends the notification every 30 seconds
+        expire: 10800, //keeps the notification active for 3h
+      };
 
-    push.send(msg, function (err, result) {
-      if (err) {
-        console.log("notification error ", err);
-      } // send notification
-      console.log(result);
-    }); // send notification
+      push.send(msg, function (err, result) {
+        if (err) {
+          console.log("notification error ", err);
+        } // send notification
+        console.log(result);
+      }); // send notification
+    }
+    console.log("borrowLimit  ", borrowLimit);
+    timesChecked += 1;
+  } catch (err) {
+    console.log("error with blStatus ", err);
   }
-  console.log("borrowLimit  ", borrowLimit);
-  timesChecked += 1;
 }
 
 async function bnbSupplyAPY() {
-  const bnbMantissa = 1e18;
-  const blocksPerDay = 20 * 60 * 24;
-  const daysPerYear = 365;
+  try {
+    const bnbMantissa = 1e18;
+    const blocksPerDay = 20 * 60 * 24;
+    const daysPerYear = 365;
 
-  const vToken = new web3.eth.Contract(vbnbABI, vbnbContract);
-  const supplyRatePerBlock = await vToken.methods.supplyRatePerBlock().call();
-  const supplyApy =
-    (Math.pow(
-      (supplyRatePerBlock / bnbMantissa) * blocksPerDay + 1,
-      daysPerYear
-    ) -
-      1) *
-    100;
-  return supplyApy;
-  console.log(`Supply APY for BNB ${supplyApy} %`);
+    const vToken = new web3.eth.Contract(vbnbABI, vbnbContract);
+    const supplyRatePerBlock = await vToken.methods.supplyRatePerBlock().call();
+    const supplyApy =
+      (Math.pow(
+        (supplyRatePerBlock / bnbMantissa) * blocksPerDay + 1,
+        daysPerYear
+      ) -
+        1) *
+      100;
+    return supplyApy;
+    console.log(`Supply APY for BNB ${supplyApy} %`);
+  } catch (err) {
+    console.log("error with bnb supply apy ", err);
+  }
 }
 
 async function cakeBorrowAPY() {
-  const bnbMantissa = 1e18;
-  const blocksPerDay = 20 * 60 * 24;
-  const daysPerYear = 365;
+  try {
+    const bnbMantissa = 1e18;
+    const blocksPerDay = 20 * 60 * 24;
+    const daysPerYear = 365;
 
-  const vToken = new web3.eth.Contract(ABI, contract);
-  const borrowRatePerBlock = await vToken.methods.borrowRatePerBlock().call();
-  const borrowApy =
-    (Math.pow(
-      (borrowRatePerBlock / bnbMantissa) * blocksPerDay + 1,
-      daysPerYear
-    ) -
-      1) *
-    100;
-  return borrowApy;
-  console.log(`Borrow APY for CAKE ${borrowApy} %`);
+    const vToken = new web3.eth.Contract(ABI, contract);
+    const borrowRatePerBlock = await vToken.methods.borrowRatePerBlock().call();
+    const borrowApy =
+      (Math.pow(
+        (borrowRatePerBlock / bnbMantissa) * blocksPerDay + 1,
+        daysPerYear
+      ) -
+        1) *
+      100;
+    return borrowApy;
+    console.log(`Borrow APY for CAKE ${borrowApy} %`);
+  } catch (err) {
+    console.log("error with cake borrow apy ", err);
+  }
 }
 
 async function netAPY(isExpected = false) {
@@ -283,15 +321,19 @@ async function netAPY(isExpected = false) {
 }
 
 function compoundInterest(principal, annual_rate, n_times, t_years) {
-  // compound based on 288 average compounding times daily. with a 2% fee for each yield harvest
+  try {
+    // compound based on 288 average compounding times daily. with a 2% fee for each yield harvest
 
-  const intra_daily_rate = annual_rate / n_times;
-  const fee = 2 / 100;
-  const intra_daily_rate_net = intra_daily_rate * (1 - fee);
+    const intra_daily_rate = annual_rate / n_times;
+    const fee = 2 / 100;
+    const intra_daily_rate_net = intra_daily_rate * (1 - fee);
 
-  const compoundValue =
-    principal * (Math.pow(1 + intra_daily_rate_net, n_times * t_years) - 1);
-  return compoundValue;
+    const compoundValue =
+      principal * (Math.pow(1 + intra_daily_rate_net, n_times * t_years) - 1);
+    return compoundValue;
+  } catch (err) {
+    console.log("error with compound interest ", err);
+  }
 }
 
 exports.blStatus = blStatus;
