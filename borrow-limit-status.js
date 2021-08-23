@@ -282,7 +282,8 @@ async function netAPY(isExpected = false) {
 
     const bnbPriceData = await axios.get(URL);
     const bnbPrice = bnbPriceData.data.binancecoin.usd;
-    const bnbBalance = await bnbBalanceFunction();
+    const bnbBalance =
+      (await bnbBalanceFunction()) || process.env.defaultBNBDeposit; //set 61 bnb as
     const bnbValue = bnbPrice * bnbBalance;
     const bnbInterests = await bnbSupplyAPY();
     console.log("bnb Interests ", bnbInterests);

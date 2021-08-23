@@ -98,7 +98,12 @@ var runAPYBrief = schedule.scheduleJob(
   // runs every day at 7pm and 7am
   async function () {
     try {
-      const netAPY = await blStatus.netAPY();
+      let netAPY;
+      if (blStatus.cakeBalanceFunction() < 0.1) {
+        netAPY = await blStatus.netAPY(true);
+      } else {
+        netAPY = await blStatus.netAPY();
+      }
       var msg = {
         message: `
       Borrow Limit: ${netAPY?.borrowLimit}%

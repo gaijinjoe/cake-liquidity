@@ -7,3 +7,5 @@ privateKey=yourprivatekeyhere
 
 borrowLimitDanger=88
 borrowLimitDesired=75
+
+defaultBNBDeposit=60
